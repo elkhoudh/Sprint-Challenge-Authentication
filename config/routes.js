@@ -1,6 +1,8 @@
 const axios = require('axios');
-
-const { authenticate } = require('../auth/authenticate');
+const db = require('../database/dbConfig')
+const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const { authenticate, genToken } = require('../auth/authenticate');
 
 module.exports = server => {
   server.post('/api/register', register);
@@ -9,11 +11,46 @@ module.exports = server => {
 };
 
 function register(req, res) {
-  // implement user registration
+  const {username, password} = req.body;
+  if(!username || !password){
+    res.status(422).json({message: "Username and password required!"})
+  } else {
+    const hash = bcrypt.hashSync(password, 10)
+    db('users').insert({username, password: hash}).then(result => {
+      if(result[0]){
+        res.status(201).json({message: "Registration success", success: true})
+      } else {
+        res.status(401).json({message: "Failed to register user"})
+      }
+    }).catch(error => {
+      res.status(500).json({message: error})
+    })
+  }
 }
 
 function login(req, res) {
-  // implement user login
+  const {username, password} = req.body;
+  if(!username || !password){
+    res.status(422).json({message: "Username and password required"})
+  } else {
+    db('users').where({username}).first().then(user => {
+      if(user){
+        const checkPass = bcrypt.compareSync(password, user.password)
+        if(checkPass){
+          genToken(user).then(token => {
+            res.json({message: "Login successful", token})
+          })
+          
+        } else {
+          res.status(401).json({message: "Invalid credentials"})
+        }
+      } else {
+        res.status(404).json({message: "Invalid credentials"})
+      }
+    }).catch(error => {
+      res.status(500).json({message: error})
+    })
+  }
 }
 
 function getJokes(req, res) {

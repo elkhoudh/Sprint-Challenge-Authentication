@@ -4,10 +4,7 @@ const jwtKey =
   process.env.JWT_SECRET ||
   'add a .env file to root of project with the JWT_SECRET variable';
 
-// quickly see what this file exports
-module.exports = {
-  authenticate,
-};
+
 
 // implementation details
 function authenticate(req, res, next) {
@@ -27,3 +24,27 @@ function authenticate(req, res, next) {
     });
   }
 }
+
+
+const genToken = user => {
+  return new Promise((res, rej) => {
+    jwt.sign(
+      user,
+      process.env.JWT_SECRET,
+      { expiresIn: 1000 * 60 * 60 * 5 }, //5 hours
+      (err, token) => {
+        if (err) {
+          rej(err);
+        } else {
+          res(token);
+        }
+      }
+    );
+  });
+};
+
+// quickly see what this file exports
+module.exports = {
+  authenticate,
+  genToken
+};
